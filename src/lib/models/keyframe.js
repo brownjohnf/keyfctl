@@ -35,22 +35,22 @@ module.exports = class Keyframe {
   }
 
   componentVars(componentName) {
-    return _.get(this, `keyframe.components.${componentName}.variables`, [])
+    return _.get(this, `keyframe.services.${componentName}.variables`, [])
   }
 
   validate() {
     if (! this.valid) return this.valid
 
-    if (_.get(this, 'keyframe.components', []).length < 1) {
+    if (_.get(this, 'keyframe.services', []).length < 1) {
       this.valid = false
-      this.rationale.push('no components defined in keyframe')
+      this.rationale.push('no services defined in keyframe')
     }
 
     return this.valid
   }
 
   frames() {
-    return _.map(_.get(this, 'keyframe.components', {}), (val, key) => {
+    return _.map(_.get(this, 'keyframe.services', {}), (val, key) => {
       return new Frame(this.revision, (new Date()).getTime(), new Component(key, val))
     })
   }
