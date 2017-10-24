@@ -17,6 +17,7 @@ module.exports = class Deployment {
   }
 
   writeRelease() {
+    console.log(this.component.image)
     return utils.writeRelease(utils.releasePath(this.component.name), this.release)
   }
 

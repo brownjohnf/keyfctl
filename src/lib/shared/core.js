@@ -2,12 +2,55 @@
 
 const
   Promise = require('bluebird'),
-  _       = require("lodash"),
-  git     = require('../shared/git'),
+  _       = require("lodash")
+const { execAsync } = Promise.promisifyAll(require('child_process'))
+const git     = require('../shared/git'),
   utils   = require('../shared/utils')
+const Commit = require('../models/commit')
 
 // get the set of commits relevant to the keyframe file
-const generateFrames = (revision, end) => {
+const generateFrames = (options) => {
+  console.log(options)
+  const { base, head } = options
+
+  const baseCommit = new Commit(base)
+  const headCommit = new Commit(head)
+
+  return Promise.each([baseCommit, headCommit], commit => {
+    return execAsync(`git show -s --format=%ci ${commit.revision}`)
+    .then(res => commit.date = res)
+  })
+  .each(commit => {
+    return execAsync(`git show -s --format=%s ${commit.revision}`)
+    .then(res => commit.subject = res)
+  })
+  .each(commit => {
+    return execAsync(`git show -s --format=%an ${commit.revision}`)
+    .then(res => {
+      return _.set(commit, 'author.name', res)
+    })
+  })
+  .each(commit => {
+    return execAsync(`git show -s --format=%ae ${commit.revision}`)
+    .then(res => {
+      return _.set(commit, 'author.email', res)
+    })
+  })
+  .each(commit => {
+    return execAsync(`git show -s --format=%s ${commit.revision}`)
+    .then(res => commit.subject = res)
+  })
+  .then(res => {
+    console.log(res)
+    process.exit()
+  })
+  .catch(err => {
+    console.error(err)
+    process.exit()
+  })
+
+
+
   return git.commits(revision, end) // returns list of Commit objects
   .each(commit => commit.getData())
   .filter(commit => commit.validate()) // checks commits to ensure all frames are valid

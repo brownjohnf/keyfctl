@@ -101,7 +101,7 @@ capitano.command({
     boolean: true,
     required: false
   }, {
-    signature: 'nocommit',
+    signature: 'commit',
     boolean: true,
     required: false
   }, {
@@ -113,6 +113,16 @@ capitano.command({
     alias: [ 'c' ],
     parameter: 'component',
     required: false
+  }, {
+    signature: 'base',
+    parameter: 'base',
+    alias: [ 'b' ],
+    required: true
+  }, {
+    signature: 'head',
+    parameter: 'head',
+    alias: [ 'h' ],
+    required: true
   }],
   action: (params, options) => {
     parseGlobalOpts(options)
@@ -122,7 +132,7 @@ capitano.command({
       utils.inspect('options: ', options)
     }
 
-    let res = core.generateFrames('HEAD')
+    let res = core.generateFrames(options)
     .catch(err => {
       throw new Error(err)
     })

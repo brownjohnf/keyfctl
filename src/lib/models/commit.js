@@ -11,12 +11,11 @@ const
 
 module.exports = class Commit {
   constructor(revision) {
-    this.revision = revision.substring(0,7)
+    this.revision = revision
     this.errors = []
     this.valid = true
     this.rationale = []
-    this.keyframe = new Keyframe(this.revision)
-
+    //this.keyframe = new Keyframe(this.revision)
   }
 
   loadVariables() {
