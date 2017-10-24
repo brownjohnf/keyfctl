@@ -54,9 +54,13 @@ module.exports = class Keyframe {
   }
 
   frames() {
-    return _.map(_.get(this, 'keyframe.components', {}), (val, key) => {
+    return _.compact(_.map(_.get(this, 'keyframe.components', {}), (val, key) => {
+      if (val.target == 'fleet') {
+        return
+      }
+
       return new Frame(this.revision, (new Date()).getTime(), new Component(key, val))
-    })
+    }))
   }
 }
 
