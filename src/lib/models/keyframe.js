@@ -8,59 +8,41 @@ const
   Frame   = require('../models/frame')
 
 module.exports = class Keyframe {
-  constructor(revision) {
-    this.revision  = revision
+  constructor(obj) {
     this.errors    = []
-    this.rationale = []
-    this.valid     = true
 
-    this.loadData = git.readFileAt(
-      './keyframe.yml',
-      this.revision
-    )
-    .then(yaml => {
-      this.raw = yaml
-
-      _.merge(this, utils.parseYaml(yaml))
-    })
-    .catch(err => {
-      this.valid = false
-      this.errors.push(err)
-      this.rationale.push('missing keyframe.yml')
-    })
+    _.merge(this, obj.keyframe)
   }
 
   globalVars() {
-    return _.get(this, 'keyframe.variables', [])
+    return _.get(this, 'variables', [])
   }
 
   componentVars(componentName) {
-    return _.get(this, `keyframe.components.${componentName}.variables`, [])
+    return _.get(this.services, `componentName}.variables`, [])
   }
 
-  validate() {
-    if (! this.valid) return this.valid
+  services() {
+    if (_.has(this, 'services')) return this.services
+    if (_.has(this, 'components')) return this.components
 
-    // This can occur if there were previously no components defined (ie. a fresh
-    // environment with skeleton keyframes)
-    if (!this.components) return this.valid
-
-    if (_.get(this, 'keyframe.components', []).length < 1) {
-      this.valid = false
-      this.rationale.push('no components defined in keyframe')
-    }
-
-    return this.valid
+    return {}
   }
 
-  frames() {
-    return _.compact(_.map(_.get(this, 'keyframe.components', {}), (val, key) => {
-      if (val.target == 'fleet') {
-        return
+  isValid() {
+    this.errors = []
+
+    _.forEach(this.services(), (val, key) => {
+      if (!_.has(val, 'image')) {
+        this.errors.push(`service ${key} missing key 'image'`)
       }
 
-      return new Frame(this.revision, (new Date()).getTime(), new Component(key, val))
-    }))
+      if (!_.has(val, 'version')) {
+        this.errors.push(`service ${key} missing key 'version'`)
+      }
+    })
+
+    return this.errors.length === 0
   }
 }
 
