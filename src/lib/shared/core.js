@@ -10,6 +10,26 @@ const Commit = require('../models/commit')
 const Keyframe = require('../models/keyframe')
 const Configuration = require('../models/configuration').Configuration
 
+const buildCommit = (commit) => {
+  return Promise.join(
+    execAsync(`git show -s --format=%ci ${commit.revision}`),
+    execAsync(`git show -s --format=%s ${commit.revision}`),
+    execAsync(`git show -s --format=%an ${commit.revision}`),
+    execAsync(`git show -s --format=%ae ${commit.revision}`),
+    git.readFileAt('./variables.yml', commit.revision),
+    git.readFileAt('./keyframe.yml', commit.revision),
+    (date, subject, authorName, authorEmail, configuration, keyframe) => {
+      _.set(commit, 'date', date)
+      _.set(commit, 'subject', subject)
+      _.set(commit, 'author.name', authorName)
+      _.set(commit, 'author.email', authorEmail)
+      _.set(commit, 'configuration', new Configuration(utils.parseYaml(configuration)))
+      _.set(commit, 'keyframe', new Keyframe(utils.parseYaml(keyframe)))
+    }
+  )
+  .return(commit)
+}
+
 // get the set of commits relevant to the keyframe file
 const generateFrames = (options) => {
   console.log(options)
@@ -18,41 +38,8 @@ const generateFrames = (options) => {
   const baseCommit = new Commit(base)
   const headCommit = new Commit(head)
 
-  return Promise.each([baseCommit, headCommit], commit => {
-    return execAsync(`git show -s --format=%ci ${commit.revision}`)
-    .then(res => commit.date = res)
-  })
-  .each(commit => {
-    return execAsync(`git show -s --format=%s ${commit.revision}`)
-    .then(res => commit.subject = res)
-  })
-  .each(commit => {
-    return execAsync(`git show -s --format=%an ${commit.revision}`)
-    .then(res => {
-      return _.set(commit, 'author.name', res)
-    })
-  })
-  .each(commit => {
-    return execAsync(`git show -s --format=%ae ${commit.revision}`)
-    .then(res => {
-      return _.set(commit, 'author.email', res)
-    })
-  })
-  .each(commit => {
-    return git.readFileAt('./variables.yml', commit.revision)
-    .then(yaml => {
-      commit.configuration = new Configuration(utils.parseYaml(yaml))
-    })
-    .return()
-  })
-  .each(commit => {
-    return git.readFileAt('./keyframe.yml', commit.revision)
-    .then(yaml => {
-      commit.keyframe = new Keyframe(utils.parseYaml(yaml))
-    })
-    .return()
-  })
-  .each(c => console.log(c.keyframe.isValid(), c.configuration.isValid(), c.isValid()))
+  return Promise.each([baseCommit, headCommit], buildCommit)
+  .each(c => console.log(c.isValid()))
   .then(res => {
     console.log(res)
     process.exit()

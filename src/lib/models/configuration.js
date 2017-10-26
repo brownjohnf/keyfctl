@@ -5,10 +5,15 @@ const
   utils = require('../shared/utils'),
   git   = require('../shared/git'),
   Component   = require('../models/component')
+const validate = require('jsonschema').validate
 
 module.exports.Configuration = class Configuration {
   constructor(obj) {
-    this.errors    = []
+    const valid = validate(obj, this.schema())
+
+    if (valid.errors.length > 0) {
+      throw new Error(valid.errors)
+    }
 
     _.merge(this, obj)
   }
@@ -21,22 +26,35 @@ module.exports.Configuration = class Configuration {
     return _.get(this, componentName, [])
   }
 
-  isValid() {
-    this.errors = []
-
-    _.forEach(this, (val, key) => {
-      _.forEach(val => {
-        if (!_.has(val, 'name')) {
-          this.errors.push(`service ${key} missing key 'name'`)
+  schema() {
+    return {
+      id: '/Configuration',
+      type: 'object',
+      properties: {
+        global: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              value: { type: 'string' },
+            }
+          }
         }
-
-        if (!_.has(val, 'value')) {
-          this.errors.push(`service ${key} missing key 'value'`)
+      },
+      patternProperties: {
+        "[a-z\-]+": {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              value: { type: 'string' },
+            }
+          }
         }
-      })
-    })
-
-    return this.errors.length === 0
+      }
+    }
   }
 }
 
